@@ -1,0 +1,25 @@
+Version 1.00
+---------------
+
+
+Fixed landing gear toggle bug.
+
+Fixed null reference exception on GUi prefab.
+
+Updated example aircraft prefab.
+
+Fixed control surface warnings.
+
+Fixed Unity 4.2 warnings.
+
+Fixed 4.2 twin aircraft propeller bug.
+
+Added Undo functionality
+
+
+Added Input configure editor panel.
+Added Getting Started .pdf
+
+
+UnityFS Beta
+---------------
