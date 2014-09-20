@@ -7,6 +7,7 @@
 .metadata
 bin/
 tmp/
+temp/
 Library/
 Assets/NGUI/
 Assets/Standard Assets/
