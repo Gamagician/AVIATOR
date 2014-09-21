@@ -71,6 +71,6 @@ public class buttonClick : MonoBehaviour
     void PlayFromSelectPlane(GameObject button)
     {
         Global.sceneName = Global.level01;
-        Application.LoadLevelAsync(Global.sceneName);
+        Application.LoadLevelAsync(Global.loadingForm);
     }
 }
