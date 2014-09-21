@@ -10,8 +10,7 @@ public class AppStart : MonoBehaviour {
     // Use this for initialization
 	void Start () {
 
-        Globe.sceneName = "StartUI";
-        StartCoroutine(loadScene(Globe.sceneName));
+        StartCoroutine(loadScene(Global.sceneName));
 	
 	}
     IEnumerator loadScene(string sceneName)

@@ -3,125 +3,40 @@ using System.Collections;
 
 public class airplane : MonoBehaviour {
 
-    public float minSpeed=10;
-    public float maxSpeed=50;
-    public float currentSpeed=20;
-    public int maxNonLethalStrike = 3;
+    public float speed = 90.0f;
 
-    private GameObject airScrew;
-	private Transform thisTransform;
-	private Rigidbody thisRigidBody;
-
-	private Transform forceOnHead;
-	private Transform forceOnLeftWin;
-	private Transform forceOnRightWin;
-	private Transform forceOnLeftNail;
-	private Transform forceOnRightNail;
-
-    private float rollAngleLeft = 0;
-    private float rollAngleRight = 0;
-    private float pullUpAngle = 0;
-    private float pitchDownAngle = 0;
-
-    private bool rollLeft = false;
-    private bool rollRight = false;
-    private bool pullUp = false;
-    private bool pitchDown = false;
-
-    private Transform planeMeshBody;
-    private Transform planeRigidBody;
-
+    public Camera camera;
 	void Start () {
-        airScrew = GameObject.Find("airscrew");
-        
-		thisRigidBody = this.rigidbody;
-		thisTransform = this.transform;
-        planeMeshBody = thisTransform.Find("Model");
-        planeRigidBody = thisTransform.Find("PlainBody");
-        
+
+      
 	}
 	
 	// Update is called once per frame
     void Update()
     {
+        Vector3 moveCamTo = transform.position - transform.forward * 10.0f + Vector3.up * 5.0f;
+        float bise = 0.7f;
 
-
-        #region control by keyboard
-        //accelerate or decelerate
-        if (Input.GetKey(KeyCode.W) && currentSpeed < maxSpeed)
-            currentSpeed += 0.1F;
-
-        if (Input.GetKey(KeyCode.S) && currentSpeed > minSpeed)
-            currentSpeed -= 0.1F;
-
-        // roll left or right
-        if (Input.GetKeyDown(KeyCode.LeftArrow)) rollLeft = true;
-        if (Input.GetKeyUp(KeyCode.LeftArrow)) rollLeft = false;
-
-        if (Input.GetKeyDown(KeyCode.RightArrow)) rollRight = true;
-        if (Input.GetKeyUp(KeyCode.RightArrow)) rollRight = false;
-
-        //up or down
-        if (Input.GetKeyDown(KeyCode.UpArrow)) pitchDown = true;
-        if (Input.GetKeyUp(KeyCode.UpArrow)) pitchDown = false;
-        if (Input.GetKeyDown(KeyCode.DownArrow)) pullUp = true;
-        if (Input.GetKeyUp(KeyCode.DownArrow)) pullUp = false;
-
-
-        #endregion
-
-        #region roll left and right
-        var rollangle = angle_360(planeRigidBody.up, planeMeshBody.forward);
-
-        Debug.Log(planeMeshBody.forward);
-
-        if (rollLeft && Mathf.Abs(rollangle) < 90)
+        camera.transform.position = camera.transform.position * bise + moveCamTo * (1 - bise);
+       
+        camera.transform.LookAt(transform.position+transform.forward*30.0f);
+        transform.position += transform.forward * Time.deltaTime * speed;
+        speed = -transform.forward.y * Time.deltaTime * 50.0f;
+        if (speed < 35.0f)
         {
-            planeMeshBody.Rotate(planeRigidBody.up, rollAngleLeft);
-            rollAngleLeft -= 0.05F;
-
+            speed = 35.0f;
         }
-        else
+        transform.Rotate(Input.GetAxis("Vertical"), 0.0f, -Input.GetAxis("Horizontal")*10.0f);
+        float terrianHeightWhereWeAre = Terrain.activeTerrain.SampleHeight(transform.position);
+        if (terrianHeightWhereWeAre > transform.position.y)
         {
-            rollAngleLeft = 0;
+            transform.position = new Vector3(transform.position.x, terrianHeightWhereWeAre, transform.position.z);
         }
 
-        if (!rollLeft && rollangle > 0)
+        if (Input.GetKey(UnityEngine.KeyCode.Escape))
         {
-            rollAngleLeft -= 0.1F * rollangle;
-            planeMeshBody.Rotate(planeRigidBody.up, -rollAngleLeft);
+            Application.LoadLevelAsync(Global.startUI);
         }
-
-        if (rollRight && rollangle - 0.1F > -90)
-        {
-
-            planeMeshBody.Rotate(planeRigidBody.up, -rollAngleRight);
-            rollAngleRight -= 0.05F;
-        }
-        else
-        {
-            rollAngleRight = 0;
-        }
-        if (!rollRight && rollangle < 0)
-        {
-            rollAngleRight += 0.1F * -rollangle;
-            planeMeshBody.Rotate(planeRigidBody.up, -rollAngleRight);
-        }
-        #endregion
-
-        //modify plane 
-        if (rollLeft)
-        {
-            thisTransform.Rotate(thisTransform.up, -0.5F);
-        }
-
-        if (rollRight)
-        {
-            thisTransform.Rotate(thisTransform.up, 0.5F);
-        }
-        airScrew.transform.Rotate(0, Time.deltaTime * currentSpeed * 50, 0);
-
-        thisRigidBody.AddForce(thisTransform.forward * currentSpeed);
     }
 
     private float angle_360(Vector3 from_, Vector3 to_)
