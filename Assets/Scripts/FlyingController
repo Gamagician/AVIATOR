@@ -1,0 +1,206 @@
+using UnityEngine;
+using System.Collections;
+
+public class FlyingController : MonoBehaviour
+{
+
+    private float airplaneangley = 0.0f;
+    private int gameover = 0;
+    private float crashforce = 0.0f;
+    private float rotationx = 0.0f;
+    private float rotationy = 0.0f;
+    private float rotationz = 0.0f;
+    private float positionx = 0.0f;
+    private float positiony = 0.0f;
+    private float positionz = 0.0f;
+
+    private float speed = 0.0f;
+    private float uplift = 0.0f;
+    private float pseudogravitation = -0.3f;
+
+    private float rightleftsoft=0.0f;
+    private float rightleftsoftabs = 0.0f;
+
+    private float divesalto = 0.0f;
+    private float diveblocker = 0.0f;
+
+	// Use this for initialization
+	void Start () {
+	
+	}
+	
+	// Update is called once per frame
+	void Update () {
+        airplaneangley = transform.eulerAngles.y;
+
+        #region Game Over
+        if ((gameover == 2) && (Input.GetKey("enter")) || (gameover == 2) && (Input.GetKey("return")))
+        {
+            gameover = 0;
+            rigidbody.useGravity = false;
+            transform.position =new Vector3(0, 1.67f, 0);
+            transform.eulerAngles = new Vector3(0, 0, 0);
+        }
+
+        if (gameover == 1)
+        {
+            rigidbody.AddRelativeForce(0, 0, crashforce);
+            gameover = 2;
+        }
+
+        if (Input.GetKey("f2"))
+        {
+            speed = 0;
+            gameover = 0;
+            rigidbody.useGravity = false;
+            Application.LoadLevel(0);
+        }
+        #endregion
+
+        #region flying controlling
+
+        if (gameover == 0)
+        {
+            rotationx = transform.eulerAngles.x;
+            rotationy = transform.eulerAngles.y;
+            rotationz = transform.eulerAngles.z;
+
+            positionx = transform.position.x;
+            positiony = transform.position.y;
+            positionz = transform.position.z;
+
+            if ((Input.GetAxis("Vertical") <= 0) && speed > 595)
+            {
+                transform.Rotate((Input.GetAxis("Vertical") * Time.deltaTime * 80), 0, 0);
+            }
+
+            if ((Input.GetAxis("Horizontal") > 0) && speed > 595)
+            {
+                float rotateX = (0.8f - divesalto) * (Input.GetAxis("Vertical") * Time.deltaTime * 80);
+                transform.Rotate(rotateX, 0, 0);
+            }
+
+            //Tilt multiplied with minus 1 to go into the right direction	
+            //Tilt just in the air
+            //if (!FrontColliderSensor.Collided)
+            //{
+                transform.Rotate(0, Time.deltaTime * 100 * rightleftsoft, 0, Space.World);
+                transform.Rotate(0, 0, Time.deltaTime * 100 * (1.0f - rightleftsoftabs - diveblocker) * Input.GetAxis("Horizontal") * -1.0f);
+            //}
+
+            
+
+            
+            //Soft rotation calculation
+            if (Input.GetAxis("Horizontal") <= 0 && rotationz > 0 && rotationz < 90)
+                rightleftsoft = rotationz * 2.2f / 100 * -1;
+            if (Input.GetAxis("Horizontal") >= 0 && rotationz > 270)
+                rightleftsoft = (7.92f - rotationz * 2.2f / 100);
+
+            //Limit rightleftsoft so that the switch isn`t too hard when flying overhead
+            rightleftsoft = rightleftsoft > 1 ? 1 : rightleftsoft;
+            rightleftsoft = rightleftsoft < -1 ? -1 : rightleftsoft;
+            
+            // Precisionproblem rightleftsoft to zero
+		    if ((rightleftsoft>-0.01f) && (rightleftsoft<0.01f)) 
+                rightleftsoft=0;
+
+            rightleftsoftabs = Mathf.Abs(rightleftsoft);
+
+            // Dive salto forward blocking
+		    if (rotationx < 90) divesalto=rotationx/100.0f;//Updown
+		    if (rotationx > 90) divesalto=-0.2f;//Updown
+
+            //blocks sideways stagger flight while dive
+            if (rotationx < 90) 
+                diveblocker = rotationx / 200.0f;
+            else 
+                diveblocker = 0;
+
+            // Rotateback when key wrong direction 
+            if ((rotationz < 180) && (Input.GetAxis("Horizontal") > 0)) transform.Rotate(0, 0, rightleftsoft * Time.deltaTime * 80);
+            if ((rotationz > 180) && (Input.GetAxis("Horizontal") < 0)) transform.Rotate(0, 0, rightleftsoft * Time.deltaTime * 80);
+
+            //Rotate back in z axis general, limited by no horizontal button pressed
+            if (!Input.GetButton("Horizontal"))
+            {
+                if ((rotationz < 135)) transform.Rotate(0, 0, rightleftsoftabs * Time.deltaTime * -100);
+                if ((rotationz > 225)) transform.Rotate(0, 0, rightleftsoftabs * Time.deltaTime * 100);
+            }
+
+            //Rotate back X axis
+            if ((!Input.GetButton("Vertical")))
+            {
+                if ((rotationx > 0) && (rotationx < 180)) transform.Rotate(Time.deltaTime * -50, 0, 0);
+                if ((rotationx > 0) && (rotationx > 180)) transform.Rotate(Time.deltaTime * 50, 0, 0);
+            }
+
+            // Speed driving and flying
+            // Speed
+		    transform.Translate(0,0,speed/20*Time.deltaTime);
+		
+		    //We need a minimum speed limit in the air. We limit again with the groundtrigger.triggered variable
+	
+    		//Input Accellerate and deccellerate at ground
+		    if (Input.GetButton("Fire1") && speed<800) speed+=Time.deltaTime*240;
+
+		    if (Input.GetButton("Fire2") && speed>0 ) speed-=Time.deltaTime*240;
+		
+		    // Input Gas geben und abbremsen in der Luft|| Input Accellerate and deccellerate in the air
+            if (Input.GetButton("Fire1") && speed<800 ) speed+=Time.deltaTime*240;
+            if (Input.GetButton("Fire2") && speed>600 ) speed-=Time.deltaTime*240;
+		
+		    if (speed<0) speed=0; 
+		    
+            //Another speed floatingpoint fix:
+            if (!Input.GetButton("Fire1") && !Input.GetButton("Fire2") && speed>695 && speed<705) speed=700;
+
+            if ((Input.GetButton("Fire1") == false) && (Input.GetButton("Fire2") == false) && (speed > 595) && (speed < 700)) speed += Time.deltaTime * 240.0f;
+            if ((Input.GetButton("Fire1") == false) && (Input.GetButton("Fire2") == false) && (speed > 595) && (speed > 700)) speed -= Time.deltaTime * 240.0f;
+
+            //uplift
+            transform.Translate(0, uplift * Time.deltaTime / 10.0f, 0);
+            uplift = -700 + speed;
+
+            if (uplift < 0) uplift = 0;
+
+            //Driving around
+            if (speed < 595)
+            {
+
+                if (!FrontColliderSensor.Collided) 
+                    transform.Rotate(Time.deltaTime * 20, 0, 0);
+                else
+                    transform.Rotate(Time.deltaTime * -20, 0, 0);
+            }
+
+            //Limiting to playfield
+            /*
+            if (transform.position.x >= 900)
+            {
+                transform.position.x = 0;
+            }
+            else if (transform.position.x <= -900.0) transform.position.x = 900.0;
+            else if (transform.position.z >= 900.0) transform.position.z = 0;
+            else if (transform.position.z <= -900.0) transform.position.z = 900.0;
+            */
+            // Here i limit the height
+            if (positiony > 1000) transform.position = new Vector3(transform.position.x, 1000, transform.position.z);
+
+        }
+        #endregion
+
+    }
+
+    void OnCollisionEnter()
+    {
+        if (!FrontColliderSensor.Collided)
+        {
+            FrontColliderSensor.Collided = true;
+            crashforce = speed * 10000;
+            speed = 0;
+            gameover = 1;
+            rigidbody.useGravity = true;
+        }
+    }
+}
